@@ -3,10 +3,6 @@ name: Build APK (no-cache, clean)
 on:
   workflow_dispatch:
 
-concurrency:
-  group: build-apk
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
