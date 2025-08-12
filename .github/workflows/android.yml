@@ -1,16 +1,20 @@
-name: Build APK
+name: Build APK (no-cache, clean)
+
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '**.kt'
-      - '**.kts'
-      - '.github/workflows/android.yml'
-      - 'app/**'
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Gradle'ın kendi disk cache'ini devre dışı bırak (isteğe bağlı ama güvenli)
+      GRADLE_OPTS: "-Dorg.gradle.caching=false"
+      ORG_GRADLE_PROJECT_orgGradleCaching: "false"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,21 +25,38 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Gradle wrapper jar'ını indir
-      - name: Fetch gradle-wrapper.jar
+      # Android SDK kur
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform & build tools
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      # Projendeki wrapper jar boş/eksikse indir
+      - name: Ensure gradle-wrapper.jar
         run: |
           mkdir -p gradle/wrapper
-          curl -sSL -o gradle/wrapper/gradle-wrapper.jar \
-            https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
-
-      - name: Gradle cache
-        uses: gradle/actions/setup-gradle@v3
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            curl -sSL -o gradle/wrapper/gradle-wrapper.jar \
+              https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
+          fi
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Tanı: ortamda cache’i kim açıyor? (listeleme)
+      - name: Debug - list workflows & grep setup-gradle
+        run: |
+          echo "Workflows in repo:"
+          ls -R .github || true
+          echo
+          echo "Grep for setup-gradle:"
+          (grep -R "setup-gradle" -n .github || true)
+
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew --no-daemon --stacktrace --warning-mode all clean assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
