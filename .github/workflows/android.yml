@@ -1,64 +1,33 @@
-name: Build APK (fix wrapper, nocache)
+name: Build APK (capture logs)
 
 on:
   workflow_dispatch:
 
 env:
-  PROJECT_DIR: "HabitNote_GHA"  # senin proje kökün
+  PROJECT_DIR: "HabitNote_GHA"   # senin proje kökün buydu
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Print tree (debug)
+        run: |
+          echo "PWD=$(pwd)"
+          find . -maxdepth 3 -type d -print | sort
+          echo "PROJECT_DIR=$PROJECT_DIR"
+          ls -la "$PROJECT_DIR" || true
+          ls -la "$PROJECT_DIR/app" || true
+
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
 
-      - name: Install Android platform & build tools
+      - name: Install Android SDK
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Bootstrap Gradle wrapper if missing
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          if [ ! -f "gradlew" ]; then
-            echo "gradlew yok → wrapper oluşturuluyor..."
-            curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
-            unzip -q /tmp/gradle.zip -d $HOME
-            $HOME/gradle-8.7/bin/gradle wrapper --gradle-version 8.7
-          fi
-
-      - name: Fix wrapper jar (overwrite with official)
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          mkdir -p gradle/wrapper
-          curl -sSL -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.7/gradle/wrapper/gradle-wrapper.jar
-          {
-            echo "distributionBase=GRADLE_USER_HOME"
-            echo "distributionPath=wrapper/dists"
-            echo "distributionUrl=https://services.gradle.org/distributions/gradle-8.7-bin.zip"
-            echo "zipStoreBase=GRADLE_USER_HOME"
-            echo "zipStorePath=wrapper/dists"
-          } > gradle/wrapper/gradle-wrapper.properties
-          chmod +x gradlew
-          ./gradlew --version
-
-      - name: Build debug APK
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: ./gradlew --no-daemon --stacktrace clean assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+          sdkmanager "pla
