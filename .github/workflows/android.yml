@@ -5,7 +5,7 @@ on:
 
 # Proje kökün değilse burayı değiştir (ör. HabitNote)
 env:
-  PROJECT_DIR: "."
+  PROJECT_DIR: "HabitNote"
 
 jobs:
   build:
