@@ -1,0 +1,21 @@
+name: Detect Android project root
+
+on:
+  workflow_dispatch:
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Print repo structure
+        run: |
+          echo "== İlk 3 seviye klasör yapısı =="
+          find . -maxdepth 3 -type d -print | sort
+          echo
+          echo "== settings.gradle dosyaları =="
+          find . -type f -name "settings.gradle*" -print
+          echo
+          echo "== app/build.gradle dosyaları =="
+          find . -type f -name "build.gradle*" -path "*/app/*" -print
